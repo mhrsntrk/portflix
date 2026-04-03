@@ -85,6 +85,26 @@ ports ps
 
 A beautiful `ps aux` for developers. Shows all running dev processes (not just port-bound ones) with CPU%, memory, framework detection, and a smart description column. Docker processes are collapsed into a single summary row.
 
+```
+$ ports ps
+
+┌───────┬─────────┬──────┬──────────┬──────────┬───────────┬─────────┬────────────────────────────────┐
+│ PID   │ PROCESS │ CPU% │ MEM      │ PROJECT  │ FRAMEWORK │ UPTIME  │ WHAT                           │
+├───────┼─────────┼──────┼──────────┼──────────┼───────────┼─────────┼────────────────────────────────┤
+│ 592   │ Docker  │ 1.3  │ 735.5 MB │ —        │ Docker    │ 13d 12h │ 14 processes                   │
+├───────┼─────────┼──────┼──────────┼──────────┼───────────┼─────────┼────────────────────────────────┤
+│ 36664 │ python3 │ 0.2  │ 17.6 MB  │ —        │ Python    │ 6d 10h  │ browser_use.skill_cli.daemon   │
+├───────┼─────────┼──────┼──────────┼──────────┼───────────┼─────────┼────────────────────────────────┤
+│ 26408 │ node    │ 0.1  │ 9.2 MB   │ —        │ Node.js   │ 10d 13h │ jest jest_runner_cloud.js      │
+├───────┼─────────┼──────┼──────────┼──────────┼───────────┼─────────┼────────────────────────────────┤
+│ 25752 │ node    │ 0.0  │ 17.3 MB  │ —        │ Node.js   │ 10d 13h │ server.js                      │
+├───────┼─────────┼──────┼──────────┼──────────┼───────────┼─────────┼────────────────────────────────┤
+│ 66921 │ Python  │ 0.0  │ 4.1 MB   │ —        │ Python    │ 2h 25m  │ src.server                     │
+└───────┴─────────┴──────┴──────────┴──────────┴───────────┴─────────┴────────────────────────────────┘
+
+  5 processes  ·  --all to show everything
+```
+
 ```bash
 ports ps --all    # show all processes, not just dev
 ```
