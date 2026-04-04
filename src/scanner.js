@@ -332,7 +332,12 @@ export function isDevProcess(processName, command) {
   if (devNames.has(name)) return true;
 
   // Docker processes (prefix match)
-  if (name.startsWith("com.docke") || name === "docker" || name === "docker-sandbox") return true;
+  if (
+    name.startsWith("com.docke") ||
+    name === "docker" ||
+    name === "docker-sandbox"
+  )
+    return true;
 
   // Command-line keyword matching (only match as whole words or clear prefixes)
   const cmdIndicators = [
@@ -595,10 +600,11 @@ export function getAllProcesses() {
 
   // Batch cwd lookup — only for non-Docker processes (Docker cwd is useless)
   const nonDockerEntries = entries.filter(
-    (e) => !e.processName.startsWith("com.docke") &&
-           !e.processName.startsWith("Docker") &&
-           e.processName !== "docker" &&
-           e.processName !== "docker-sandbox",
+    (e) =>
+      !e.processName.startsWith("com.docke") &&
+      !e.processName.startsWith("Docker") &&
+      e.processName !== "docker" &&
+      e.processName !== "docker-sandbox",
   );
   const cwdMap = batchCwd(nonDockerEntries.map((e) => e.pid));
 
@@ -642,6 +648,15 @@ export function findOrphanedProcesses() {
   return ports.filter((p) => p.status === "orphaned" || p.status === "zombie");
 }
 
+export function pidExists(pid) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function killProcess(pid, signal = "SIGTERM") {
   try {
     process.kill(pid, signal);
@@ -649,6 +664,19 @@ export function killProcess(pid, signal = "SIGTERM") {
   } catch {
     return false;
   }
+}
+
+/**
+ * Resolve kill target: prefer listener on port (1-65535), else treat as PID.
+ */
+export function resolveKillTarget(n) {
+  if (!Number.isInteger(n) || n < 1) return null;
+  if (n <= 65535) {
+    const info = getPortDetails(n);
+    if (info) return { pid: info.pid, via: "port", port: n, info };
+  }
+  if (pidExists(n)) return { pid: n, via: "pid" };
+  return null;
 }
 
 export function watchPorts(callback, intervalMs = 2000) {

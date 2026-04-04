@@ -8,6 +8,7 @@ import {
   watchPorts,
   isDevProcess,
   getAllProcesses,
+  resolveKillTarget,
 } from "./scanner.js";
 import {
   displayPortTable,
@@ -174,6 +175,73 @@ async function main() {
       break;
     }
 
+    case "kill": {
+      const killArgs = filteredArgs
+        .slice(1)
+        .filter((a) => a !== "--force" && a !== "-f");
+      const force =
+        filteredArgs.includes("--force") || filteredArgs.includes("-f");
+      const signal = force ? "SIGKILL" : "SIGTERM";
+
+      if (killArgs.length === 0) {
+        console.log(
+          chalk.red(
+            `\n  Usage: ports kill [-f|--force] <port|pid> [port|pid...]\n`,
+          ),
+        );
+        console.log(
+          chalk.gray(
+            "  Kills listener on port (1-65535), or process by PID. Use -f for SIGKILL.\n",
+          ),
+        );
+        process.exit(1);
+      }
+
+      let anyFailed = false;
+      console.log();
+
+      for (const arg of killArgs) {
+        const n = parseInt(arg, 10);
+        if (isNaN(n) || String(n) !== arg.trim()) {
+          console.log(chalk.red(`  ✕ "${arg}" is not a valid port/PID`));
+          anyFailed = true;
+          continue;
+        }
+
+        const resolved = resolveKillTarget(n);
+        if (!resolved) {
+          const msg =
+            n <= 65535
+              ? `No listener on :${n} and no process with PID ${n}`
+              : `No process with PID ${n}`;
+          console.log(chalk.red(`  ✕ ${msg}`));
+          anyFailed = true;
+          continue;
+        }
+
+        const { pid, via } = resolved;
+        const label =
+          via === "port"
+            ? `:${resolved.port} — ${resolved.info?.processName || "unknown"} (PID ${pid})`
+            : `PID ${pid}`;
+
+        console.log(chalk.white(`  Killing ${label}`));
+        const ok = killProcess(pid, signal);
+        if (ok) {
+          console.log(chalk.green(`  ✓ Sent ${signal} to ${label}`));
+        } else {
+          console.log(
+            chalk.red(`  ✕ Failed. Try: sudo kill${force ? " -9" : ""} ${pid}`),
+          );
+          anyFailed = true;
+        }
+      }
+
+      console.log();
+      process.exitCode = anyFailed ? 1 : 0;
+      break;
+    }
+
     case "watch": {
       displayWatchHeader();
       const interval = watchPorts((type, info) => {
@@ -210,6 +278,9 @@ async function main() {
       );
       console.log(
         `    ${chalk.cyan("ports <number>")}     Detailed info about a specific port`,
+      );
+      console.log(
+        `    ${chalk.cyan("ports kill <n>")}     Kill by port or PID (-f for SIGKILL)`,
       );
       console.log(
         `    ${chalk.cyan("ports clean")}        Kill orphaned/zombie dev servers`,

@@ -259,9 +259,7 @@ export function displayProcessTable(processes, filtered = false) {
       chalk.white.bold(truncate(p.processName, 15)),
       cpuColored,
       p.memory ? chalk.green(p.memory) : chalk.gray("—"),
-      p.projectName
-        ? chalk.blue(truncate(p.projectName, 20))
-        : chalk.gray("—"),
+      p.projectName ? chalk.blue(truncate(p.projectName, 20)) : chalk.gray("—"),
       formatFramework(p.framework),
       p.uptime ? chalk.yellow(p.uptime) : chalk.gray("—"),
       chalk.gray(truncate(p.description || p.processName, 30)),

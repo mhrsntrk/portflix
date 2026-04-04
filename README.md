@@ -77,6 +77,17 @@ whoisonport 3000
 
 Detailed view: full process tree, repository path, current git branch, memory usage, and an interactive prompt to kill the process.
 
+### Kill a process
+
+```bash
+ports kill 3000                # kill by port
+ports kill 3000 5173 8080      # kill multiple
+ports kill 42872               # kill by PID
+ports kill -f 3000             # force kill (SIGKILL)
+```
+
+Resolves port to process automatically. Falls back to PID if no listener matches. Use `-f` when a process won't die gracefully.
+
 ### Show all dev processes
 
 ```bash
