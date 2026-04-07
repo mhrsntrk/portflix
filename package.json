@@ -1,6 +1,6 @@
 {
   "name": "port-whisperer",
-  "version": "1.2.1",
+  "version": "1.3.0",
   "description": "A beautiful CLI tool to see what's running on your ports -- framework detection, process info, and interactive management",
   "type": "module",
   "keywords": [

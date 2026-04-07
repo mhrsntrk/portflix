@@ -29,7 +29,7 @@ const command = filteredArgs[0];
 async function main() {
   // No args: show dev ports by default, --all for everything
   if (!command) {
-    let ports = getListeningPorts();
+    let ports = await getListeningPorts();
     if (!showAll) {
       ports = ports.filter((p) => isDevProcess(p.processName, p.command));
     }
@@ -40,7 +40,7 @@ async function main() {
   // Specific port number
   const portNum = parseInt(command, 10);
   if (!isNaN(portNum)) {
-    const info = getPortDetails(portNum);
+    const info = await getPortDetails(portNum);
     displayPortDetail(info);
 
     if (info) {
@@ -72,7 +72,7 @@ async function main() {
   // Named commands
   switch (command) {
     case "ps": {
-      let processes = getAllProcesses();
+      let processes = await getAllProcesses();
       if (!showAll) {
         processes = processes.filter((p) =>
           isDevProcess(p.processName, p.command),
@@ -129,7 +129,7 @@ async function main() {
     }
 
     case "clean": {
-      const orphaned = findOrphanedProcesses();
+      const orphaned = await findOrphanedProcesses();
       const killed = [];
       const failed = [];
 
@@ -208,7 +208,7 @@ async function main() {
           continue;
         }
 
-        const resolved = resolveKillTarget(n);
+        const resolved = await resolveKillTarget(n);
         if (!resolved) {
           const msg =
             n <= 65535

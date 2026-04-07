@@ -7,14 +7,6 @@ const ICONS = {
   orphaned: chalk.yellow("●"),
   zombie: chalk.red("●"),
   unknown: chalk.gray("●"),
-  port: chalk.cyan("⌘"),
-  folder: chalk.blue("📂"),
-  git: chalk.magenta("⎇"),
-  time: chalk.yellow("⏱"),
-  memory: chalk.green("◆"),
-  process: chalk.white("⚙"),
-  kill: chalk.red("✕"),
-  watch: chalk.cyan("👁"),
 };
 
 const FRAMEWORK_COLORS = {
@@ -340,10 +332,11 @@ export function displayPortDetail(info) {
 
   console.log();
   console.log(
-    chalk.gray("  Kill this process: ") +
-      chalk.cyan(`ports clean`) +
+    chalk.gray("  Kill: ") +
+      chalk.cyan(`ports kill ${info.port}`) +
       chalk.gray(" or ") +
-      chalk.red(`kill ${info.pid}`),
+      chalk.cyan(`ports kill -f ${info.port}`) +
+      chalk.gray(" (force)"),
   );
   console.log();
 }

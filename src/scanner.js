@@ -1,88 +1,18 @@
 import { execSync } from "child_process";
 import { existsSync, readFileSync } from "fs";
 import { join, dirname, basename } from "path";
-
-/**
- * Batch-fetch ps info for all PIDs in one call
- * Returns Map<pid, { ppid, stat, rss, lstart, command }>
- */
-function batchPsInfo(pids) {
-  const map = new Map();
-  if (pids.length === 0) return map;
-
-  try {
-    const pidList = pids.join(",");
-    const raw = execSync(
-      `ps -p ${pidList} -o pid=,ppid=,stat=,rss=,lstart=,command= 2>/dev/null`,
-      {
-        encoding: "utf8",
-        timeout: 5000,
-      },
-    ).trim();
-
-    for (const line of raw.split("\n")) {
-      if (!line.trim()) continue;
-      // Format: PID PPID STAT RSS DOW MON DD HH:MM:SS YYYY COMMAND...
-      const m = line
-        .trim()
-        .match(
-          /^(\d+)\s+(\d+)\s+(\S+)\s+(\d+)\s+\w+\s+(\w+\s+\d+\s+[\d:]+\s+\d+)\s+(.*)$/,
-        );
-      if (!m) continue;
-      map.set(parseInt(m[1], 10), {
-        ppid: parseInt(m[2], 10),
-        stat: m[3],
-        rss: parseInt(m[4], 10),
-        lstart: m[5],
-        command: m[6],
-      });
-    }
-  } catch {}
-  return map;
-}
-
-/**
- * Batch-fetch cwd for all PIDs via a single lsof call
- * Returns Map<pid, cwdPath>
- */
-function batchCwd(pids) {
-  const map = new Map();
-  if (pids.length === 0) return map;
-
-  try {
-    const pidList = pids.join(",");
-    const raw = execSync(`lsof -a -d cwd -p ${pidList} 2>/dev/null`, {
-      encoding: "utf8",
-      timeout: 10000,
-    }).trim();
-
-    const lines = raw.split("\n").slice(1); // skip header
-    for (const line of lines) {
-      const parts = line.split(/\s+/);
-      if (parts.length < 9) continue;
-      const pid = parseInt(parts[1], 10);
-      const path = parts.slice(8).join(" ");
-      if (path && path.startsWith("/")) {
-        map.set(pid, path);
-      }
-    }
-  } catch {}
-  return map;
-}
+import { getPlatform } from "./platform/index.js";
 
 /**
  * Batch-fetch docker container info mapped by host port.
- * Returns Map<port, { name, image }>
+ * Docker CLI is cross-platform.
  */
 function batchDockerInfo() {
   const map = new Map();
   try {
     const raw = execSync(
       'docker ps --format "{{.Ports}}\\t{{.Names}}\\t{{.Image}}" 2>/dev/null',
-      {
-        encoding: "utf8",
-        timeout: 5000,
-      },
+      { encoding: "utf8", timeout: 5000 },
     ).trim();
 
     for (const line of raw.split("\n")) {
@@ -90,7 +20,6 @@ function batchDockerInfo() {
       const [portsStr, name, image] = line.split("\t");
       if (!portsStr || !name) continue;
 
-      // Parse port mappings like "0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp"
       const portMatches = portsStr.matchAll(
         /(?:\d+\.\d+\.\d+\.\d+|::):(\d+)->/g,
       );
@@ -108,47 +37,16 @@ function batchDockerInfo() {
 }
 
 /**
- * Parse lsof output to get all listening ports with process info.
- * When detailed=false (default for table view), skips expensive per-process lookups.
+ * Get all listening ports with enriched process info.
  */
-export function getListeningPorts(detailed = false) {
-  let raw;
-  try {
-    raw = execSync("lsof -iTCP -sTCP:LISTEN -P -n 2>/dev/null", {
-      encoding: "utf8",
-      timeout: 10000,
-    });
-  } catch {
-    return [];
-  }
+export async function getListeningPorts(detailed = false) {
+  const platform = await getPlatform();
+  const entries = platform.getListeningPortsRaw();
 
-  const lines = raw.trim().split("\n").slice(1);
-  const portMap = new Map();
-  const entries = [];
-
-  for (const line of lines) {
-    const parts = line.split(/\s+/);
-    if (parts.length < 9) continue;
-
-    const processName = parts[0];
-    const pid = parseInt(parts[1], 10);
-    const nameField = parts[8];
-
-    const portMatch = nameField.match(/:(\d+)$/);
-    if (!portMatch) continue;
-    const port = parseInt(portMatch[1], 10);
-
-    if (portMap.has(port)) continue;
-    portMap.set(port, true);
-    entries.push({ port, pid, processName });
-  }
-
-  // Deduplicate PIDs for batch calls
   const uniquePids = [...new Set(entries.map((e) => e.pid))];
 
-  // Batch calls instead of N*6 individual calls
-  const psMap = batchPsInfo(uniquePids);
-  const cwdMap = batchCwd(uniquePids);
+  const psMap = platform.batchProcessInfo(uniquePids);
+  const cwdMap = platform.batchCwd(uniquePids);
   const hasDocker = entries.some(
     (e) => e.processName.startsWith("com.docke") || e.processName === "docker",
   );
@@ -175,7 +73,6 @@ export function getListeningPorts(detailed = false) {
       processTree: [],
     };
 
-    // Status from batched ps
     if (ps) {
       if (ps.stat.includes("Z")) info.status = "zombie";
       else if (ps.ppid === 1 && isDevProcess(processName, ps.command))
@@ -190,13 +87,11 @@ export function getListeningPorts(detailed = false) {
         }
       }
 
-      // Framework detection from command line (no extra shell call)
       if (!info.framework) {
         info.framework = detectFrameworkFromCommand(ps.command, processName);
       }
     }
 
-    // Docker container detection
     const docker = dockerMap.get(port);
     if (docker) {
       info.projectName = docker.name;
@@ -204,7 +99,6 @@ export function getListeningPorts(detailed = false) {
       info.processName = "docker";
     }
 
-    // Cwd + project + framework from batched lsof (skip if docker already set)
     if (cwd && !docker) {
       const projectRoot = findProjectRoot(cwd);
       info.cwd = projectRoot;
@@ -215,18 +109,14 @@ export function getListeningPorts(detailed = false) {
         try {
           info.gitBranch = execSync(
             `git -C "${info.cwd}" rev-parse --abbrev-ref HEAD 2>/dev/null`,
-            {
-              encoding: "utf8",
-              timeout: 3000,
-            },
+            { encoding: "utf8", timeout: 3000 },
           ).trim();
         } catch {}
       }
     }
 
-    // Process tree only in detailed mode
     if (detailed) {
-      info.processTree = getProcessTree(pid);
+      info.processTree = platform.getProcessTree(pid);
     }
 
     return info;
@@ -236,15 +126,15 @@ export function getListeningPorts(detailed = false) {
 }
 
 /**
- * Check if a process looks like a dev server vs a regular macOS/system app.
- * Used for orphan detection and filtering the table view.
+ * Check if a process looks like a dev server vs a regular system/desktop app.
  */
 export function isDevProcess(processName, command) {
   const name = (processName || "").toLowerCase();
   const cmd = (command || "").toLowerCase();
 
-  // Known system/desktop apps — not dev processes
+  // System/desktop apps per platform
   const systemApps = [
+    // macOS
     "spotify",
     "raycast",
     "tableplus",
@@ -285,6 +175,29 @@ export function isDevProcess(processName, command) {
     "usernoted",
     "notificationc",
     "cloudd",
+    // Linux
+    "systemd",
+    "snapd",
+    "networkmanager",
+    "gdm",
+    "sshd",
+    "cron",
+    "dbus-daemon",
+    "polkitd",
+    "rsyslogd",
+    "thermald",
+    "accounts-daemon",
+    // Windows
+    "svchost",
+    "csrss",
+    "lsass",
+    "services",
+    "explorer",
+    "dwm",
+    "searchindexer",
+    "taskhostw",
+    "runtimebroker",
+    "shellexperiencehost",
   ];
   for (const app of systemApps) {
     if (name.toLowerCase().startsWith(app)) return false;
@@ -339,7 +252,7 @@ export function isDevProcess(processName, command) {
   )
     return true;
 
-  // Command-line keyword matching (only match as whole words or clear prefixes)
+  // Command-line keyword matching (whole words only)
   const cmdIndicators = [
     /\bnode\b/,
     /\bnext[\s-]/,
@@ -365,10 +278,10 @@ export function isDevProcess(processName, command) {
 }
 
 /**
- * Get detailed info for a specific port
+ * Get detailed info for a specific port.
  */
-export function getPortDetails(targetPort) {
-  const ports = getListeningPorts(true);
+export async function getPortDetails(targetPort) {
+  const ports = await getListeningPorts(true);
   return ports.find((p) => p.port === targetPort) || null;
 }
 
@@ -401,7 +314,7 @@ function findProjectRoot(dir) {
   ];
   let current = dir;
   let depth = 0;
-  while (current !== "/" && depth < 15) {
+  while (current !== "/" && current !== dirname(current) && depth < 15) {
     for (const marker of markers) {
       if (existsSync(join(current, marker))) return current;
     }
@@ -490,55 +403,17 @@ function detectFrameworkFromName(processName) {
   return null;
 }
 
-function getProcessTree(pid) {
-  const tree = [];
-  try {
-    // Get all processes in one call and walk the tree in memory
-    const raw = execSync("ps -eo pid=,ppid=,comm= 2>/dev/null", {
-      encoding: "utf8",
-      timeout: 5000,
-    }).trim();
-
-    const processes = new Map();
-    for (const line of raw.split("\n")) {
-      const parts = line.trim().split(/\s+/);
-      if (parts.length < 3) continue;
-      const p = parseInt(parts[0], 10);
-      const pp = parseInt(parts[1], 10);
-      processes.set(p, { pid: p, ppid: pp, name: parts.slice(2).join(" ") });
-    }
-
-    let currentPid = pid;
-    let depth = 0;
-    while (currentPid > 1 && depth < 8) {
-      const proc = processes.get(currentPid);
-      if (!proc) break;
-      tree.push(proc);
-      currentPid = proc.ppid;
-      depth++;
-    }
-  } catch {}
-  return tree;
-}
-
 /**
- * Extract a short, human-readable description from a full command string.
+ * Extract a short description from a full command string.
  */
 function summarizeCommand(command, processName) {
   const cmd = command || "";
-
-  // For scripts with arguments, show the meaningful part
-  // e.g. "node /Users/foo/project/server.js --port 3000" -> "server.js"
-  // e.g. "/usr/bin/python3 manage.py runserver" -> "manage.py runserver"
   const parts = cmd.split(/\s+/);
   const meaningful = [];
   for (let i = 0; i < parts.length; i++) {
     const part = parts[i];
-    // Skip the binary path itself
     if (i === 0) continue;
-    // Skip flags
     if (part.startsWith("-")) continue;
-    // Get basename of file paths
     if (part.includes("/")) {
       meaningful.push(basename(part));
     } else {
@@ -546,59 +421,17 @@ function summarizeCommand(command, processName) {
     }
     if (meaningful.length >= 3) break;
   }
-
   if (meaningful.length > 0) return meaningful.join(" ");
-
-  // Fallback: use the binary basename
   return processName;
 }
 
 /**
- * Get all running processes (like ps aux but structured).
- * Used by `ports ps` command.
+ * Get all running processes (for `ports ps`).
  */
-export function getAllProcesses() {
-  let raw;
-  try {
-    raw = execSync(
-      "ps -eo pid=,pcpu=,pmem=,rss=,lstart=,command= 2>/dev/null",
-      { encoding: "utf8", timeout: 5000 },
-    ).trim();
-  } catch {
-    return [];
-  }
+export async function getAllProcesses() {
+  const platform = await getPlatform();
+  const entries = platform.getAllProcessesRaw();
 
-  const entries = [];
-  const seen = new Set();
-
-  for (const line of raw.split("\n")) {
-    if (!line.trim()) continue;
-    const m = line
-      .trim()
-      .match(
-        /^(\d+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)\s+\w+\s+(\w+\s+\d+\s+[\d:]+\s+\d+)\s+(.*)$/,
-      );
-    if (!m) continue;
-
-    const pid = parseInt(m[1], 10);
-    if (pid <= 1 || pid === process.pid || seen.has(pid)) continue;
-    seen.add(pid);
-
-    const command = m[6];
-    const processName = basename(command.split(/\s+/)[0]);
-
-    entries.push({
-      pid,
-      processName,
-      cpu: parseFloat(m[2]),
-      memPercent: parseFloat(m[3]),
-      rss: parseInt(m[4], 10),
-      lstart: m[5],
-      command,
-    });
-  }
-
-  // Batch cwd lookup — only for non-Docker processes (Docker cwd is useless)
   const nonDockerEntries = entries.filter(
     (e) =>
       !e.processName.startsWith("com.docke") &&
@@ -606,7 +439,7 @@ export function getAllProcesses() {
       e.processName !== "docker" &&
       e.processName !== "docker-sandbox",
   );
-  const cwdMap = batchCwd(nonDockerEntries.map((e) => e.pid));
+  const cwdMap = platform.batchCwd(nonDockerEntries.map((e) => e.pid));
 
   return entries.map((e) => {
     const cwd = cwdMap.get(e.pid);
@@ -643,8 +476,8 @@ export function getAllProcesses() {
   });
 }
 
-export function findOrphanedProcesses() {
-  const ports = getListeningPorts();
+export async function findOrphanedProcesses() {
+  const ports = await getListeningPorts();
   return ports.filter((p) => p.status === "orphaned" || p.status === "zombie");
 }
 
@@ -658,6 +491,18 @@ export function pidExists(pid) {
 }
 
 export function killProcess(pid, signal = "SIGTERM") {
+  // Windows: SIGKILL not natively supported, use taskkill
+  if (process.platform === "win32" && signal === "SIGKILL") {
+    try {
+      execSync(`taskkill /F /PID ${pid}`, {
+        windowsHide: true,
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
   try {
     process.kill(pid, signal);
     return true;
@@ -666,13 +511,10 @@ export function killProcess(pid, signal = "SIGTERM") {
   }
 }
 
-/**
- * Resolve kill target: prefer listener on port (1-65535), else treat as PID.
- */
-export function resolveKillTarget(n) {
+export async function resolveKillTarget(n) {
   if (!Number.isInteger(n) || n < 1) return null;
   if (n <= 65535) {
-    const info = getPortDetails(n);
+    const info = await getPortDetails(n);
     if (info) return { pid: info.pid, via: "port", port: n, info };
   }
   if (pidExists(n)) return { pid: n, via: "pid" };
@@ -681,24 +523,31 @@ export function resolveKillTarget(n) {
 
 export function watchPorts(callback, intervalMs = 2000) {
   let previousPorts = new Set();
+  let running = false;
 
-  const check = () => {
-    const current = getListeningPorts();
-    const currentSet = new Set(current.map((p) => p.port));
+  const check = async () => {
+    if (running) return;
+    running = true;
+    try {
+      const current = await getListeningPorts();
+      const currentSet = new Set(current.map((p) => p.port));
 
-    for (const p of current) {
-      if (!previousPorts.has(p.port)) {
-        callback("new", p);
+      for (const p of current) {
+        if (!previousPorts.has(p.port)) {
+          callback("new", p);
+        }
       }
-    }
 
-    for (const port of previousPorts) {
-      if (!currentSet.has(port)) {
-        callback("removed", { port });
+      for (const port of previousPorts) {
+        if (!currentSet.has(port)) {
+          callback("removed", { port });
+        }
       }
-    }
 
-    previousPorts = currentSet;
+      previousPorts = currentSet;
+    } finally {
+      running = false;
+    }
   };
 
   check();
