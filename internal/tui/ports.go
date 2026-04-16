@@ -20,18 +20,19 @@ const (
 )
 
 type PortsModel struct {
-	ports      []scanner.Port
-	cursor     int
-	showAll    bool
-	loading    bool
-	refreshing bool
-	err        error
-	width      int
-	height     int
-	screen     portsScreen
-	sp         spinner.Model
-	msg        string
-	msgOK      bool
+	ports        []scanner.Port
+	cursor       int
+	showAll      bool
+	loading      bool
+	refreshing   bool
+	refreshFrame int
+	err          error
+	width        int
+	height       int
+	screen       portsScreen
+	sp           spinner.Model
+	msg          string
+	msgOK        bool
 	// set when user presses 'l' — caller should launch logs for this port
 	LogsPort int
 }
@@ -42,6 +43,7 @@ type portsLoadedMsg struct {
 }
 type killDoneMsg struct{ pid int; ok bool }
 type autoRefreshMsg struct{}
+type pulseTickMsg struct{}
 
 func NewPortsModel(showAll bool) PortsModel {
 	sp := spinner.New()
@@ -79,6 +81,10 @@ func autoRefresh() tea.Cmd {
 	return tea.Tick(5*time.Second, func(time.Time) tea.Msg { return autoRefreshMsg{} })
 }
 
+func pulseTick() tea.Cmd {
+	return tea.Tick(350*time.Millisecond, func(time.Time) tea.Msg { return pulseTickMsg{} })
+}
+
 func (m PortsModel) Init() tea.Cmd {
 	return tea.Batch(loadPorts(m.showAll), m.sp.Tick)
 }
@@ -93,6 +99,12 @@ func (m PortsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			var cmd tea.Cmd
 			m.sp, cmd = m.sp.Update(msg)
 			return m, cmd
+		}
+
+	case pulseTickMsg:
+		if m.refreshing {
+			m.refreshFrame++
+			return m, pulseTick()
 		}
 
 	case portsLoadedMsg:
@@ -123,7 +135,8 @@ func (m PortsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case autoRefreshMsg:
 		if !m.loading && !m.refreshing && m.screen == screenList {
 			m.refreshing = true
-			return m, loadPorts(m.showAll)
+			m.refreshFrame = 0
+			return m, tea.Batch(loadPorts(m.showAll), pulseTick())
 		}
 		return m, autoRefresh()
 
@@ -298,11 +311,11 @@ func (m PortsModel) viewList() string {
 	if m.showAll {
 		mode = "[all mode]"
 	}
-	summary := fmt.Sprintf("%d port%s  %s", len(m.ports), plural(len(m.ports)), mode)
+	indicator := ""
 	if m.refreshing {
-		summary += "  · refreshing"
+		indicator = "  " + pulseChar(m.refreshFrame)
 	}
-	b.WriteString("  " + sMuted.Render(summary) + "\n")
+	b.WriteString("  " + sMuted.Render(fmt.Sprintf("%d port%s  %s", len(m.ports), plural(len(m.ports)), mode)) + indicator + "\n")
 	b.WriteString("  " + renderHints(m.width, [][2]string{
 		{"↑↓/jk", "nav"},
 		{"enter", "detail"},

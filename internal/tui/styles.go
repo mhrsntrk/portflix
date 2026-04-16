@@ -135,6 +135,18 @@ func coalesce(s, fallback string) string {
 	return s
 }
 
+// pulseFrames cycles a block from near-invisible to full accent color and back,
+// simulating a breathing/opacity effect for background activity indicators.
+var pulseFrames = []lipgloss.Color{
+	"#3a0f0f", "#6b1a1a", "#9e2a2a", "#c93838", "#EF4444",
+	"#c93838", "#9e2a2a", "#6b1a1a",
+}
+
+func pulseChar(frame int) string {
+	c := pulseFrames[frame%len(pulseFrames)]
+	return lipgloss.NewStyle().Foreground(c).Render("■")
+}
+
 // renderHints renders keyboard hints in priority order, stopping before they
 // would exceed the available width. Each hint is a [key, label] pair.
 func renderHints(width int, hints [][2]string) string {
