@@ -162,17 +162,7 @@ func (m psModel) View() string {
 	}
 
 	var b strings.Builder
-	refreshing := ""
-	if m.loading {
-		refreshing = "  " + m.sp.View()
-	}
-	filterTag := ""
-	if !m.showAll {
-		filterTag = sMuted.Render("  dev only")
-	}
-	b.WriteString(renderBanner() + "\n")
-	b.WriteString("  " + sMuted.Render(fmt.Sprintf("%d process%s", len(m.procs), psPlural(len(m.procs)))) +
-		filterTag + refreshing + "\n\n")
+	b.WriteString(renderBanner() + "\n\n")
 
 	const (
 		wpPID  = 7
@@ -246,7 +236,17 @@ func (m psModel) View() string {
 		b.WriteString(row + "\n")
 	}
 
-	b.WriteString("\n  " + sMuted.Render("↑↓/jk") + " nav  " +
+	b.WriteString("\n")
+	mode := "[dev mode]"
+	if m.showAll {
+		mode = "[all mode]"
+	}
+	summary := fmt.Sprintf("%d process%s  %s", len(m.procs), psPlural(len(m.procs)), mode)
+	if m.loading {
+		summary += "  · refreshing"
+	}
+	b.WriteString("  " + sMuted.Render(summary) + "\n")
+	b.WriteString("  " + sMuted.Render("↑↓/jk") + " nav  " +
 		sMuted.Render("a") + " all  " +
 		sMuted.Render("r") + " refresh  " +
 		sMuted.Render("q") + " quit\n")
