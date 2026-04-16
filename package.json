@@ -1,5 +1,5 @@
 {
-  "name": "port-whisperer",
+  "name": "portflix",
   "version": "1.5.0",
   "description": "A beautiful CLI tool to see what's running on your ports -- framework detection, process info, and interactive management",
   "type": "module",
@@ -29,7 +29,7 @@
   ],
   "bin": {
     "ports": "./src/index.js",
-    "whoisonport": "./src/index.js"
+    "portflix": "./src/index.js"
   },
   "scripts": {
     "start": "node src/index.js"

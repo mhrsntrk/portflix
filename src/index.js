@@ -371,7 +371,7 @@ async function main() {
 
       console.log();
       console.log(
-        chalk.cyan.bold("  Port Whisperer") +
+        chalk.cyan.bold("  Portflix") +
           chalk.gray(` — logs for ${portLabel} (${processName}, PID ${pid})`),
       );
       console.log();
@@ -498,8 +498,8 @@ async function main() {
     case "-h": {
       console.log();
       console.log(
-        chalk.cyan.bold("  Port Whisperer") +
-          chalk.gray(" — listen to your ports"),
+        chalk.cyan.bold("  Portflix") +
+          chalk.gray(" — stream your ports"),
       );
       console.log();
       console.log(chalk.white("  Usage:"));
@@ -531,7 +531,7 @@ async function main() {
         `    ${chalk.cyan("ports watch")}        Monitor port changes in real-time`,
       );
       console.log(
-        `    ${chalk.cyan("whoisonport <num>")} Alias for ports <number>`,
+        `    ${chalk.cyan("portflix <num>")}    Alias for ports <number>`,
       );
       console.log();
       break;

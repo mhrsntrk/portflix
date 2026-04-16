@@ -8,7 +8,7 @@ export function getPlatform() {
   if (!_platformPromise) {
     if (process.platform !== "darwin") {
       _platformPromise = Promise.reject(
-        new Error("port-whisperer requires macOS"),
+        new Error("portflix requires macOS"),
       );
     } else {
       _platformPromise = import("./darwin.js");

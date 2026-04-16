@@ -63,8 +63,8 @@ function padToWidth(text, targetWidth) {
 }
 
 function renderHeader() {
-  const line1 = "  🔊 Port Whisperer";
-  const line2 = "  listening to your ports...";
+  const line1 = "  🎬 Portflix";
+  const line2 = "  now streaming your ports...";
   const border = "─".repeat(BOX_INNER_WIDTH);
   console.log();
   console.log(chalk.cyan.bold(` ┌${border}┐`));

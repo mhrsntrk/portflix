@@ -45,7 +45,7 @@ This is an ESM-only Node.js CLI (`"type": "module"`) with no build step. Entry p
 - `getAllProcessesRaw()` — returns full process list for `ports ps`
 - `getProcessTree(pid)` — walks parent chain upward
 
-**CLI binary names:** `ports` and `whoisonport` (both map to `src/index.js`).
+**CLI binary names:** `ports` and `portflix` (both map to `src/index.js`).
 
 ## Homebrew
 
@@ -54,13 +54,13 @@ The formula lives in the separate tap repo: https://github.com/mhrsntrk/homebrew
 ```
 homebrew-portflix/
   Formula/
-    port-whisperer.rb   ← install source: npm tarball
+    portflix.rb   ← install source: npm tarball
 ```
 
 Install:
 ```bash
 brew tap mhrsntrk/portflix
-brew install port-whisperer
+brew install portflix
 ```
 
-When releasing a new version: publish to npm, compute the new sha256 (`curl -sL <tarball-url> | shasum -a 256`), then update `url`, `sha256`, and version in `homebrew-portflix/Formula/port-whisperer.rb`.
+When releasing a new version: publish to npm, compute the new sha256 (`curl -sL <tarball-url> | shasum -a 256`), then update `url`, `sha256`, and version in `homebrew-portflix/Formula/portflix.rb`.

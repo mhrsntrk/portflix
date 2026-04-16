@@ -1,8 +1,8 @@
-# port-whisperer
+# portflix
 
 **A beautiful CLI tool to see what's running on your ports.**
 
-Stop guessing which process is hogging port 3000. `port-whisperer` gives you a color-coded table of every dev server, database, and background process listening on your machine -- with framework detection, Docker container identification, and interactive process management.
+Stop guessing which process is hogging port 3000. `portflix` gives you a color-coded table of every dev server, database, and background process listening on your machine -- with framework detection, Docker container identification, and interactive process management.
 
 ## What it looks like
 
@@ -10,8 +10,8 @@ Stop guessing which process is hogging port 3000. `port-whisperer` gives you a c
 $ ports
 
  ┌─────────────────────────────────────┐
- │  Port Whisperer                     │
- │  listening to your ports...         │
+ │  🎬 Portflix                        │
+ │  now streaming your ports...        │
  └─────────────────────────────────────┘
 
 ┌───────┬─────────┬───────┬──────────────────────┬────────────┬────────┬───────────┐
@@ -37,13 +37,13 @@ Colors: green = healthy, yellow = orphaned, red = zombie.
 
 ```bash
 brew tap mhrsntrk/portflix
-brew install port-whisperer
+brew install portflix
 ```
 
 Or via npm:
 
 ```bash
-npm install -g port-whisperer
+npm install -g portflix
 ```
 
 ## Usage
@@ -69,7 +69,7 @@ Includes system services, desktop apps, and everything else listening on your ma
 ```bash
 ports 3000
 # or
-whoisonport 3000
+portflix 3000
 ```
 
 Detailed view: full process tree, repository path, current git branch, memory usage, and an interactive prompt to kill the process.
@@ -109,12 +109,12 @@ ports logs 3000 --lines 10 -f # show last 10 then follow
 ports logs 3000 --err         # stderr only
 ```
 
-Discovers log files automatically using `lsof` file descriptor detection. If stdout/stderr is redirected to a file, it finds and tails it. Falls back to system log (`log show` on macOS, `journalctl` on Linux) when no log files are found.
+Discovers log files automatically using `lsof` file descriptor detection. If stdout/stderr is redirected to a file, it finds and tails it. Falls back to system log (`log show` on macOS) when no log files are found.
 
 ```
 $ ports logs 3000 --lines 5
 
-  Port Whisperer — logs for :3000 (node, PID 42872)
+  Portflix — logs for :3000 (node, PID 42872)
 
   ▸ Tailing stdout: /tmp/next-dev.output
 
