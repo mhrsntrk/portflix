@@ -210,17 +210,58 @@ func (m PortsModel) View() string {
 	return m.viewList()
 }
 
-const (
-	wPort  = 7
-	wProc  = 12
-	wPID   = 7
-	wProj  = 22
-	wFW    = 12
-	wUp    = 9
-	wSt    = 12
-)
-
 var sep = sMuted.Render("  │  ")
+
+const sepW = 5 // display width of sep
+
+// cols holds the active column widths; zero means the column is hidden.
+type cols struct{ port, proc, pid, proj, fw, up, st int }
+
+func computeCols(width int) cols {
+	if width == 0 {
+		width = 120
+	}
+	avail := width - 2 // subtract cursor prefix "▶ "
+
+	// All 7 columns
+	if avail >= 7+12+7+22+12+9+12+6*sepW {
+		return cols{7, 12, 7, 22, 12, 9, 12}
+	}
+	// Drop PID
+	if avail >= 7+12+22+12+9+12+5*sepW {
+		return cols{7, 12, 0, 22, 12, 9, 12}
+	}
+	// Drop PID, shrink PROJECT to fit (6 cols, 5 seps)
+	projW := avail - (7 + 12 + 12 + 9 + 12) - 5*sepW
+	if projW >= 10 {
+		if projW > 22 {
+			projW = 22
+		}
+		return cols{7, 12, 0, projW, 12, 9, 12}
+	}
+	// Drop PID + PROJECT
+	if avail >= 7+12+12+9+12+4*sepW {
+		return cols{7, 12, 0, 0, 12, 9, 12}
+	}
+	// Drop PID + PROJECT + UPTIME
+	if avail >= 7+12+12+12+3*sepW {
+		return cols{7, 12, 0, 0, 12, 0, 12}
+	}
+	// Minimum: PORT, PROCESS, STATUS
+	return cols{7, 12, 0, 0, 0, 0, 12}
+}
+
+func (c cols) dividerWidth() int {
+	w := c.port + c.proc + c.st
+	nseps := 2
+	for _, v := range []int{c.pid, c.proj, c.fw, c.up} {
+		if v > 0 {
+			w += v
+			nseps++
+		}
+	}
+	return w + nseps*sepW
+}
 
 func (m PortsModel) viewList() string {
 	var b strings.Builder
@@ -236,18 +277,18 @@ func (m PortsModel) viewList() string {
 		b.WriteString("  " + style.Render(m.msg) + "\n\n")
 	}
 
+	c := computeCols(m.width)
+
 	if len(m.ports) == 0 {
 		b.WriteString("  " + sMuted.Render("No active ports.") + "\n")
 		b.WriteString("  " + sMuted.Render("Press r to refresh, a to show all.") + "\n")
 	} else {
-		// Header
-		hdr := "  " + renderHeader()
-		divLine := "  " + sDivider.Render(strings.Repeat("─",
-			wPort+wProc+wPID+wProj+wFW+wUp+wSt+lipgloss.Width(sep)*6))
+		hdr := "  " + renderHeader(c)
+		divLine := "  " + sDivider.Render(strings.Repeat("─", c.dividerWidth()))
 		b.WriteString(hdr + "\n" + divLine + "\n")
 
 		for i, p := range m.ports {
-			b.WriteString(m.renderRow(i, p) + "\n")
+			b.WriteString(m.renderRow(i, p, c) + "\n")
 		}
 	}
 
@@ -272,49 +313,78 @@ func (m PortsModel) viewList() string {
 	return b.String()
 }
 
-func renderHeader() string {
+func renderHeader(c cols) string {
 	h := sColHeader
-	return cell(h.Render("PORT"), wPort) + sep +
-		cell(h.Render("PROCESS"), wProc) + sep +
-		cell(h.Render("PID"), wPID) + sep +
-		cell(h.Render("PROJECT"), wProj) + sep +
-		cell(h.Render("FRAMEWORK"), wFW) + sep +
-		cell(h.Render("UPTIME"), wUp) + sep +
-		cell(h.Render("STATUS"), wSt)
+	parts := []string{cell(h.Render("PORT"), c.port), cell(h.Render("PROCESS"), c.proc)}
+	if c.pid > 0 {
+		parts = append(parts, cell(h.Render("PID"), c.pid))
+	}
+	if c.proj > 0 {
+		parts = append(parts, cell(h.Render("PROJECT"), c.proj))
+	}
+	if c.fw > 0 {
+		parts = append(parts, cell(h.Render("FRAMEWORK"), c.fw))
+	}
+	if c.up > 0 {
+		parts = append(parts, cell(h.Render("UPTIME"), c.up))
+	}
+	parts = append(parts, cell(h.Render("STATUS"), c.st))
+	return strings.Join(parts, sep)
 }
 
-func (m PortsModel) renderRow(i int, p scanner.Port) string {
+func (m PortsModel) renderRow(i int, p scanner.Port, c cols) string {
 	sel := i == m.cursor
 	portStr := fmt.Sprintf(":%d", p.Port)
 	pidStr := fmt.Sprintf("%d", p.PID)
+	bg := sSelected
 
-	var portCell, procCell, pidCell, projCell, fwCell, upCell, stCell string
-
-	if sel {
-		bg := sSelected
-		portCell = cell(bg.Bold(true).Render(portStr), wPort)
-		procCell = cell(bg.Render(p.ProcessName), wProc)
-		pidCell = cell(bg.Foreground(cMuted).Render(pidStr), wPID)
-		projCell = cell(bg.Foreground(cBlue).Render(coalesce(p.ProjectName, "—")), wProj)
-		fwCell = cell(bg.Render(fwColored(p.Framework)), wFW)
-		upCell = cell(bg.Foreground(cYellow).Render(coalesce(p.Uptime, "—")), wUp)
-		stCell = cell(bg.Render(statusCell(string(p.Status))), wSt)
-	} else {
-		portCell = cell(sBold.Render(portStr), wPort)
-		procCell = cell(sWhite.Render(p.ProcessName), wProc)
-		pidCell = cell(sMuted.Render(pidStr), wPID)
-		projCell = cell(sBlue.Render(coalesce(p.ProjectName, "—")), wProj)
-		fwCell = cell(fwColored(p.Framework), wFW)
-		upCell = cell(sYellow.Render(coalesce(p.Uptime, "—")), wUp)
-		stCell = cell(statusCell(string(p.Status)), wSt)
+	colVal := func(plain, styled string, w int) string {
+		if sel {
+			return cell(bg.Render(plain), w)
+		}
+		return cell(styled, w)
 	}
+
+	parts := []string{
+		func() string {
+			if sel {
+				return cell(bg.Bold(true).Render(portStr), c.port)
+			}
+			return cell(sBold.Render(portStr), c.port)
+		}(),
+		colVal(p.ProcessName, sWhite.Render(p.ProcessName), c.proc),
+	}
+	if c.pid > 0 {
+		parts = append(parts, colVal(pidStr, sMuted.Render(pidStr), c.pid))
+	}
+	if c.proj > 0 {
+		proj := coalesce(p.ProjectName, "—")
+		parts = append(parts, colVal(proj, sBlue.Render(proj), c.proj))
+	}
+	if c.fw > 0 {
+		fw := fwColored(p.Framework)
+		if sel {
+			parts = append(parts, cell(bg.Render(p.Framework), c.fw))
+		} else {
+			parts = append(parts, cell(fw, c.fw))
+		}
+	}
+	if c.up > 0 {
+		up := coalesce(p.Uptime, "—")
+		parts = append(parts, colVal(up, sYellow.Render(up), c.up))
+	}
+	parts = append(parts, func() string {
+		if sel {
+			return cell(bg.Render(statusCell(string(p.Status))), c.st)
+		}
+		return cell(statusCell(string(p.Status)), c.st)
+	}())
 
 	cursor := "  "
 	if sel {
 		cursor = sCyan.Render("▶ ")
 	}
-	return cursor + portCell + sep + procCell + sep + pidCell + sep +
-		projCell + sep + fwCell + sep + upCell + sep + stCell
+	return cursor + strings.Join(parts, sep)
 }
 
 func (m PortsModel) viewDetail() string {
