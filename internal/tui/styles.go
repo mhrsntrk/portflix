@@ -135,16 +135,25 @@ func coalesce(s, fallback string) string {
 	return s
 }
 
-// pulseFrames cycles a block from near-invisible to full accent color and back,
-// simulating a breathing/opacity effect for background activity indicators.
+// pulseFrames cycles a block through shades of gray — barely visible at rest,
+// breathing up to a soft mid-gray during background activity.
 var pulseFrames = []lipgloss.Color{
-	"#3a0f0f", "#6b1a1a", "#9e2a2a", "#c93838", "#EF4444",
-	"#c93838", "#9e2a2a", "#6b1a1a",
+	"#2A2A2A", "#323232", "#3C3C3C", "#484848",
+	"#565656", "#646464", "#727272", "#808080",
+	"#727272", "#646464", "#565656", "#484848",
+	"#3C3C3C", "#323232",
 }
+
+// pulseIdle is the static color shown when not refreshing.
+const pulseIdle = lipgloss.Color("#2A2A2A")
 
 func pulseChar(frame int) string {
 	c := pulseFrames[frame%len(pulseFrames)]
 	return lipgloss.NewStyle().Foreground(c).Render("■")
+}
+
+func pulseCharIdle() string {
+	return lipgloss.NewStyle().Foreground(pulseIdle).Render("■")
 }
 
 // renderHints renders keyboard hints in priority order, stopping before they

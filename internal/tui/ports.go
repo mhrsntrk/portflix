@@ -82,7 +82,7 @@ func autoRefresh() tea.Cmd {
 }
 
 func pulseTick() tea.Cmd {
-	return tea.Tick(350*time.Millisecond, func(time.Time) tea.Msg { return pulseTickMsg{} })
+	return tea.Tick(80*time.Millisecond, func(time.Time) tea.Msg { return pulseTickMsg{} })
 }
 
 func (m PortsModel) Init() tea.Cmd {
@@ -110,6 +110,7 @@ func (m PortsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case portsLoadedMsg:
 		m.loading = false
 		m.refreshing = false
+		m.refreshFrame = 0
 		if msg.err != nil {
 			m.err = msg.err
 		} else {
@@ -311,11 +312,11 @@ func (m PortsModel) viewList() string {
 	if m.showAll {
 		mode = "[all mode]"
 	}
-	indicator := ""
+	indicator := pulseCharIdle()
 	if m.refreshing {
-		indicator = "  " + pulseChar(m.refreshFrame)
+		indicator = pulseChar(m.refreshFrame)
 	}
-	b.WriteString("  " + sMuted.Render(fmt.Sprintf("%d port%s  %s", len(m.ports), plural(len(m.ports)), mode)) + indicator + "\n")
+	b.WriteString("  " + sMuted.Render(fmt.Sprintf("%d port%s  %s", len(m.ports), plural(len(m.ports)), mode)) + "  " + indicator + "\n")
 	b.WriteString("  " + renderHints(m.width, [][2]string{
 		{"↑↓/jk", "nav"},
 		{"enter", "detail"},
