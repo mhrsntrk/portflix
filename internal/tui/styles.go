@@ -21,7 +21,7 @@ var (
 	cBlue    = lipgloss.Color("#5F87FF")
 	cMagenta = lipgloss.Color("#D787FF")
 	cWhite   = lipgloss.Color("#EEEEEE")
-	cSel     = lipgloss.Color("#3D1515")
+	cSel     = lipgloss.Color("#2C2C2C")
 	cOrange  = lipgloss.Color("#DEA55D")
 	cCyan    = lipgloss.Color("#00D7FF")
 
@@ -34,7 +34,7 @@ var (
 	sBold    = lipgloss.NewStyle().Bold(true).Foreground(cWhite)
 	sAccent  = lipgloss.NewStyle().Bold(true).Foreground(cAccent)
 
-	sColHeader = lipgloss.NewStyle().Bold(true).Foreground(cAccent)
+	sColHeader = lipgloss.NewStyle().Bold(true).Foreground(cWhite)
 	sDivider   = lipgloss.NewStyle().Foreground(cMuted)
 	sSelected  = lipgloss.NewStyle().Background(cSel)
 

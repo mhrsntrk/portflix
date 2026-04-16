@@ -294,9 +294,9 @@ func (m PortsModel) viewList() string {
 
 	// Footer
 	b.WriteString("\n")
-	mode := "dev"
+	mode := "[dev mode]"
 	if m.showAll {
-		mode = "all"
+		mode = "[all mode]"
 	}
 	summary := fmt.Sprintf("%d port%s  %s", len(m.ports), plural(len(m.ports)), mode)
 	if m.refreshing {
