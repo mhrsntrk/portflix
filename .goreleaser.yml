@@ -1,0 +1,55 @@
+project_name: portflix
+
+builds:
+  - id: portflix
+    main: .
+    binary: ports
+    goos:
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w
+
+archives:
+  - id: default
+    format: tar.gz
+    name_template: '{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}'
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ .Tag }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+release:
+  replace_existing_artifacts: true
+
+brews:
+  - name: portflix
+    homepage: https://github.com/mhrsntrk/portflix
+    description: "CLI tool to see what's running on your ports — framework detection, process info, interactive TUI"
+    license: MIT
+    directory: Formula
+    repository:
+      owner: mhrsntrk
+      name: homebrew-portflix
+      token: "{{ .Env.HOMEBREW_GITHUB_API_TOKEN }}"
+    install: |
+      bin.install "ports"
+      bin.install_symlink bin/"ports" => "portflix"
+    test: |
+      assert_match "Portflix", shell_output("#{bin}/ports --help")
