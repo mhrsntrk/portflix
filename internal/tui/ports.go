@@ -46,7 +46,7 @@ type autoRefreshMsg struct{}
 func NewPortsModel(showAll bool) PortsModel {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
-	sp.Style = lipgloss.NewStyle().Foreground(cCyan)
+	sp.Style = lipgloss.NewStyle().Foreground(cAccent)
 	return PortsModel{showAll: showAll, loading: true, sp: sp}
 }
 
@@ -294,10 +294,11 @@ func (m PortsModel) viewList() string {
 
 	// Footer
 	b.WriteString("\n")
-	summary := fmt.Sprintf("%d port%s", len(m.ports), plural(len(m.ports)))
-	if !m.showAll {
-		summary += "  dev only"
+	mode := "dev"
+	if m.showAll {
+		mode = "all"
 	}
+	summary := fmt.Sprintf("%d port%s  %s", len(m.ports), plural(len(m.ports)), mode)
 	if m.refreshing {
 		summary += "  · refreshing"
 	}
@@ -382,7 +383,7 @@ func (m PortsModel) renderRow(i int, p scanner.Port, c cols) string {
 
 	cursor := "  "
 	if sel {
-		cursor = sCyan.Render("▶ ")
+		cursor = sAccent.Render("▶ ")
 	}
 	return cursor + strings.Join(parts, sep)
 }
@@ -414,7 +415,7 @@ func (m PortsModel) viewDetail() string {
 		row("Started", sMuted.Render(p.StartTime.Format("Jan 2 15:04:05")))
 	}
 
-	b.WriteString("\n  " + sCyan.Render("Location") + "\n")
+	b.WriteString("\n  " + sAccent.Render("Location") + "\n")
 	b.WriteString("  " + sDivider.Render(strings.Repeat("─", 40)) + "\n\n")
 	row("Directory", sBlue.Render(coalesce(p.CWD, "—")))
 	row("Project", sWhite.Render(coalesce(p.ProjectName, "—")))

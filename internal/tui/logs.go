@@ -44,7 +44,7 @@ type logsFallbackMsg struct{ cmd string; content string }
 func newLogsModel(port, pid int, procName string, follow bool) logsModel {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
-	sp.Style = lipgloss.NewStyle().Foreground(cCyan)
+	sp.Style = lipgloss.NewStyle().Foreground(cAccent)
 	vp := viewport.New(0, 0)
 	return logsModel{
 		port: port, pid: pid, procName: procName,

@@ -29,7 +29,7 @@ type psRefreshMsg struct{}
 func newPSModel(showAll bool) psModel {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
-	sp.Style = lipgloss.NewStyle().Foreground(cCyan)
+	sp.Style = lipgloss.NewStyle().Foreground(cAccent)
 	return psModel{showAll: showAll, loading: true, sp: sp}
 }
 
@@ -216,7 +216,7 @@ func (m psModel) View() string {
 
 		cursor := "  "
 		if sel {
-			cursor = sCyan.Render("▶ ")
+			cursor = sAccent.Render("▶ ")
 		}
 
 		bg := sSelected

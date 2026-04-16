@@ -9,11 +9,11 @@ const asciiLogo = `                  |    _| |_)
 _|                                  `
 
 func renderBanner() string {
-	return sCyan.Render(asciiLogo)
+	return sAccent.Render(asciiLogo)
 }
 
 var (
-	cCyan    = lipgloss.Color("#00D7FF")
+	cAccent  = lipgloss.Color("#EF4444")
 	cGreen   = lipgloss.Color("#00FF7F")
 	cYellow  = lipgloss.Color("#FFD700")
 	cRed     = lipgloss.Color("#FF5F5F")
@@ -21,19 +21,20 @@ var (
 	cBlue    = lipgloss.Color("#5F87FF")
 	cMagenta = lipgloss.Color("#D787FF")
 	cWhite   = lipgloss.Color("#EEEEEE")
-	cSel     = lipgloss.Color("#1C3A4A")
+	cSel     = lipgloss.Color("#3D1515")
 	cOrange  = lipgloss.Color("#DEA55D")
+	cCyan    = lipgloss.Color("#00D7FF")
 
-	sMuted  = lipgloss.NewStyle().Foreground(cMuted)
-	sGreen  = lipgloss.NewStyle().Foreground(cGreen)
-	sYellow = lipgloss.NewStyle().Foreground(cYellow)
-	sRed    = lipgloss.NewStyle().Foreground(cRed)
-	sBlue   = lipgloss.NewStyle().Foreground(cBlue)
-	sWhite  = lipgloss.NewStyle().Foreground(cWhite)
-	sBold   = lipgloss.NewStyle().Bold(true).Foreground(cWhite)
-	sCyan   = lipgloss.NewStyle().Bold(true).Foreground(cCyan)
+	sMuted   = lipgloss.NewStyle().Foreground(cMuted)
+	sGreen   = lipgloss.NewStyle().Foreground(cGreen)
+	sYellow  = lipgloss.NewStyle().Foreground(cYellow)
+	sRed     = lipgloss.NewStyle().Foreground(cRed)
+	sBlue    = lipgloss.NewStyle().Foreground(cBlue)
+	sWhite   = lipgloss.NewStyle().Foreground(cWhite)
+	sBold    = lipgloss.NewStyle().Bold(true).Foreground(cWhite)
+	sAccent  = lipgloss.NewStyle().Bold(true).Foreground(cAccent)
 
-	sColHeader = lipgloss.NewStyle().Bold(true).Foreground(cCyan)
+	sColHeader = lipgloss.NewStyle().Bold(true).Foreground(cAccent)
 	sDivider   = lipgloss.NewStyle().Foreground(cMuted)
 	sSelected  = lipgloss.NewStyle().Background(cSel)
 
