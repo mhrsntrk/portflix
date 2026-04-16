@@ -18,8 +18,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/larsencundric/port-whisperer.git"
+    "url": "https://github.com/mhrsntrk/portflix.git"
   },
+  "os": ["darwin"],
   "engines": {
     "node": ">=18"
   },

@@ -36,18 +36,15 @@ Colors: green = healthy, yellow = orphaned, red = zombie.
 ## Install
 
 ```bash
-npm install -g port-whisperer
+brew tap mhrsntrk/portflix
+brew install port-whisperer
 ```
 
-Or run it directly without installing:
+Or via npm:
 
 ```bash
-npx port-whisperer
+npm install -g port-whisperer
 ```
-
-### Or let Claude Code install it for you
-
-If you use [Claude Code](https://claude.ai/code), you can ask it to `npm install -g port-whisperer` and start using `ports` right away -- no setup steps needed.
 
 ## Usage
 
@@ -190,11 +187,7 @@ Framework detection reads `package.json` dependencies and inspects process comma
 
 ## Platform support
 
-| Platform | Status |
-|----------|--------|
-| macOS    | Supported |
-| Linux    | Supported |
-| Windows  | Supported |
+macOS only. Requires Node.js ≥ 18.
 
 ## License
 

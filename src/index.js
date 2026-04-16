@@ -25,13 +25,6 @@ import { createInterface } from "readline";
 import { spawn } from "child_process";
 
 function spawnTail(filePath, numLines, follow = true) {
-  if (process.platform === "win32") {
-    const waitFlag = follow ? " -Wait" : "";
-    return spawn("powershell", [
-      "-Command",
-      `Get-Content -Path '${filePath}' -Tail ${numLines}${waitFlag}`,
-    ], { stdio: "inherit" });
-  }
   const args = follow ? ["-f", "-n", numLines, filePath] : ["-n", numLines, filePath];
   return spawn("tail", args, { stdio: "inherit" });
 }

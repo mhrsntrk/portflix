@@ -1,5 +1,5 @@
 import { execSync } from "child_process";
-import { existsSync, readFileSync, readdirSync, readlinkSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { join, dirname, basename } from "path";
 import { getPlatform } from "./platform/index.js";
 
@@ -491,18 +491,6 @@ export function pidExists(pid) {
 }
 
 export function killProcess(pid, signal = "SIGTERM") {
-  // Windows: SIGKILL not natively supported, use taskkill
-  if (process.platform === "win32" && signal === "SIGKILL") {
-    try {
-      execSync(`taskkill /F /PID ${pid}`, {
-        windowsHide: true,
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-      return true;
-    } catch {
-      return false;
-    }
-  }
   try {
     process.kill(pid, signal);
     return true;
@@ -563,53 +551,31 @@ export function watchPorts(callback, intervalMs = 2000) {
  */
 export function getProcessLogFiles(pid) {
   const files = [];
-  const plat = process.platform;
 
-  if (plat === "darwin" || plat === "linux") {
-    try {
-      const raw = execSync(`lsof -p ${pid} 2>/dev/null`, {
-        encoding: "utf8",
-        timeout: 5000,
-      }).trim();
+  try {
+    const raw = execSync(`lsof -p ${pid} 2>/dev/null`, {
+      encoding: "utf8",
+      timeout: 5000,
+    }).trim();
 
-      for (const line of raw.split("\n").slice(1)) {
-        const cols = line.split(/\s+/);
-        if (cols.length < 9) continue;
+    for (const line of raw.split("\n").slice(1)) {
+      const cols = line.split(/\s+/);
+      if (cols.length < 9) continue;
 
-        const fd = cols[3];
-        const type = cols[4];
-        const name = cols.slice(8).join(" ");
+      const fd = cols[3];
+      const type = cols[4];
+      const name = cols.slice(8).join(" ");
 
-        if ((fd === "1w" || fd === "2w") && type === "REG") {
-          files.push({ path: name, fd: fd === "1w" ? "stdout" : "stderr", type: "redirect", priority: 1 });
-          continue;
-        }
-
-        if (type === "REG" && /w$/.test(fd) && isLogLikePath(name)) {
-          files.push({ path: name, fd: "file", type: "logfile", priority: 2 });
-        }
+      if ((fd === "1w" || fd === "2w") && type === "REG") {
+        files.push({ path: name, fd: fd === "1w" ? "stdout" : "stderr", type: "redirect", priority: 1 });
+        continue;
       }
-    } catch {
-      // lsof not available — fall back to /proc on Linux
-      if (plat === "linux") {
-        try {
-          const fdDir = `/proc/${pid}/fd`;
-          for (const entry of readdirSync(fdDir)) {
-            try {
-              const target = readlinkSync(join(fdDir, entry));
-              if (entry === "1" && !target.startsWith("/dev/") && !target.startsWith("pipe:")) {
-                files.push({ path: target, fd: "stdout", type: "redirect", priority: 1 });
-              } else if (entry === "2" && !target.startsWith("/dev/") && !target.startsWith("pipe:")) {
-                files.push({ path: target, fd: "stderr", type: "redirect", priority: 1 });
-              } else if (isLogLikePath(target)) {
-                files.push({ path: target, fd: "file", type: "logfile", priority: 2 });
-              }
-            } catch {}
-          }
-        } catch {}
+
+      if (type === "REG" && /w$/.test(fd) && isLogLikePath(name)) {
+        files.push({ path: name, fd: "file", type: "logfile", priority: 2 });
       }
     }
-  }
+  } catch {}
 
   // Check common framework log locations relative to process cwd
   const cwdRaw = getProcessCwd(pid);
@@ -657,19 +623,8 @@ function isLogLikePath(name) {
 
 function getProcessCwd(pid) {
   try {
-    if (process.platform === "linux") {
-      return execSync(`readlink -f /proc/${pid}/cwd 2>/dev/null`, { encoding: "utf8", timeout: 3000 }).trim();
-    }
-    if (process.platform === "darwin") {
-      return execSync(`lsof -p ${pid} -d cwd -Fn 2>/dev/null`, { encoding: "utf8", timeout: 3000 })
-        .split("\n").find((l) => l.startsWith("n"))?.slice(1);
-    }
-    if (process.platform === "win32") {
-      return execSync(
-        `powershell -Command "(Get-Process -Id ${pid}).Path | Split-Path" 2>nul`,
-        { encoding: "utf8", timeout: 5000 },
-      ).trim() || null;
-    }
+    return execSync(`lsof -p ${pid} -d cwd -Fn 2>/dev/null`, { encoding: "utf8", timeout: 3000 })
+      .split("\n").find((l) => l.startsWith("n"))?.slice(1) ?? null;
   } catch {}
   return null;
 }
@@ -678,20 +633,9 @@ function getProcessCwd(pid) {
  * Get system log stream command for a PID (platform-specific).
  */
 export function getSystemLogCommand(pid, follow = false) {
-  if (process.platform === "darwin") {
-    return follow
-      ? `log stream --predicate 'processID == ${pid}' --style compact`
-      : `log show --predicate 'processID == ${pid}' --style compact --last 1m`;
-  }
-  if (process.platform === "linux") {
-    return follow
-      ? `journalctl _PID=${pid} -f --no-pager`
-      : `journalctl _PID=${pid} --no-pager -n 50`;
-  }
-  if (process.platform === "win32") {
-    return `powershell -Command "Get-WinEvent -FilterHashtable @{LogName='Application'; ProcessId=${pid}} -MaxEvents 50"`;
-  }
-  return null;
+  return follow
+    ? `log stream --predicate 'processID == ${pid}' --style compact`
+    : `log show --predicate 'processID == ${pid}' --style compact --last 1m`;
 }
 
 function formatUptime(ms) {
