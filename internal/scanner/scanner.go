@@ -213,17 +213,7 @@ func GetListeningPorts(detailed bool) ([]Port, error) {
 	psMap := batchProcessInfo(pids)
 	cwdMap := batchCWD(pids)
 
-	hasDocker := false
-	for _, e := range entries {
-		if strings.HasPrefix(e.name, "com.docke") || e.name == "docker" {
-			hasDocker = true
-			break
-		}
-	}
-	var dockerMap map[int]dockerContainer
-	if hasDocker {
-		dockerMap = batchDockerInfo()
-	}
+	dockerMap := batchDockerInfo()
 
 	var ports []Port
 	for _, e := range entries {

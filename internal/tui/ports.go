@@ -20,17 +20,18 @@ const (
 )
 
 type PortsModel struct {
-	ports   []scanner.Port
-	cursor  int
-	showAll bool
-	loading bool
-	err     error
-	width   int
-	height  int
-	screen  portsScreen
-	sp      spinner.Model
-	msg     string
-	msgOK   bool
+	ports      []scanner.Port
+	cursor     int
+	showAll    bool
+	loading    bool
+	refreshing bool
+	err        error
+	width      int
+	height     int
+	screen     portsScreen
+	sp         spinner.Model
+	msg        string
+	msgOK      bool
 	// set when user presses 'l' — caller should launch logs for this port
 	LogsPort int
 }
@@ -96,6 +97,7 @@ func (m PortsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case portsLoadedMsg:
 		m.loading = false
+		m.refreshing = false
 		if msg.err != nil {
 			m.err = msg.err
 		} else {
@@ -119,9 +121,9 @@ func (m PortsModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, tea.Batch(loadPorts(m.showAll), m.sp.Tick)
 
 	case autoRefreshMsg:
-		if !m.loading && m.screen == screenList {
-			m.loading = true
-			return m, tea.Batch(loadPorts(m.showAll), m.sp.Tick)
+		if !m.loading && !m.refreshing && m.screen == screenList {
+			m.refreshing = true
+			return m, loadPorts(m.showAll)
 		}
 		return m, autoRefresh()
 
@@ -223,18 +225,7 @@ var sep = sMuted.Render("  │  ")
 func (m PortsModel) viewList() string {
 	var b strings.Builder
 
-	// Banner line
-	refreshing := ""
-	if m.loading {
-		refreshing = "  " + m.sp.View()
-	}
-	filterTag := ""
-	if !m.showAll {
-		filterTag = sMuted.Render("  dev only")
-	}
-	b.WriteString(renderBanner() + "\n")
-	b.WriteString("  " + sMuted.Render(fmt.Sprintf("%d port%s", len(m.ports), plural(len(m.ports)))) +
-		filterTag + refreshing + "\n\n")
+	b.WriteString(renderBanner() + "\n\n")
 
 	// Status message
 	if m.msg != "" {
@@ -262,6 +253,14 @@ func (m PortsModel) viewList() string {
 
 	// Footer
 	b.WriteString("\n")
+	summary := fmt.Sprintf("%d port%s", len(m.ports), plural(len(m.ports)))
+	if !m.showAll {
+		summary += "  dev only"
+	}
+	if m.refreshing {
+		summary += "  · refreshing"
+	}
+	b.WriteString("  " + sMuted.Render(summary) + "\n")
 	hints := sMuted.Render("↑↓/jk") + " nav  " +
 		sMuted.Render("enter") + " detail  " +
 		sMuted.Render("K") + " kill  " +
