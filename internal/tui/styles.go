@@ -1,0 +1,121 @@
+package tui
+
+import "github.com/charmbracelet/lipgloss"
+
+var (
+	cCyan    = lipgloss.Color("#00D7FF")
+	cGreen   = lipgloss.Color("#00FF7F")
+	cYellow  = lipgloss.Color("#FFD700")
+	cRed     = lipgloss.Color("#FF5F5F")
+	cMuted   = lipgloss.Color("#585858")
+	cBlue    = lipgloss.Color("#5F87FF")
+	cMagenta = lipgloss.Color("#D787FF")
+	cWhite   = lipgloss.Color("#EEEEEE")
+	cSel     = lipgloss.Color("#1C3A4A")
+	cOrange  = lipgloss.Color("#DEA55D")
+
+	sMuted  = lipgloss.NewStyle().Foreground(cMuted)
+	sGreen  = lipgloss.NewStyle().Foreground(cGreen)
+	sYellow = lipgloss.NewStyle().Foreground(cYellow)
+	sRed    = lipgloss.NewStyle().Foreground(cRed)
+	sBlue   = lipgloss.NewStyle().Foreground(cBlue)
+	sWhite  = lipgloss.NewStyle().Foreground(cWhite)
+	sBold   = lipgloss.NewStyle().Bold(true).Foreground(cWhite)
+	sCyan   = lipgloss.NewStyle().Bold(true).Foreground(cCyan)
+
+	sColHeader = lipgloss.NewStyle().Bold(true).Foreground(cCyan)
+	sDivider   = lipgloss.NewStyle().Foreground(cMuted)
+	sSelected  = lipgloss.NewStyle().Background(cSel)
+
+	sFooter = lipgloss.NewStyle().
+		Foreground(cMuted).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderTop(true).
+		BorderForeground(cMuted)
+
+	frameworkColors = map[string]lipgloss.Color{
+		"Next.js": cWhite, "Vite": cYellow, "React": cCyan, "Vue": cGreen,
+		"Angular": cRed, "Svelte": lipgloss.Color("#FF3E00"),
+		"SvelteKit": lipgloss.Color("#FF3E00"), "Express": cMuted,
+		"NestJS": cRed, "Nuxt": cGreen, "Remix": cBlue, "Astro": cMagenta,
+		"Django": cGreen, "Flask": cWhite, "FastAPI": cCyan, "Rails": cRed,
+		"Gatsby": cMagenta, "Go": cCyan, "Rust": cOrange, "Ruby": cRed,
+		"Python": cYellow, "Node.js": cGreen, "Java": cOrange,
+		"Docker": cBlue, "PostgreSQL": cBlue, "Redis": cRed,
+		"MySQL": cBlue, "MongoDB": cGreen, "nginx": cGreen,
+		"LocalStack": cWhite, "Kafka": cWhite,
+		"Webpack": cBlue, "esbuild": cYellow, "Parcel": cYellow,
+		"Hono": cOrange, "Koa": cWhite, "Fastify": cWhite,
+	}
+)
+
+func fwColored(fw string) string {
+	if fw == "" {
+		return sMuted.Render("—")
+	}
+	c, ok := frameworkColors[fw]
+	if !ok {
+		return sWhite.Render(fw)
+	}
+	return lipgloss.NewStyle().Foreground(c).Render(fw)
+}
+
+func statusDot(status string) string {
+	switch status {
+	case "healthy":
+		return sGreen.Render("●")
+	case "orphaned":
+		return sYellow.Render("●")
+	case "zombie":
+		return sRed.Render("●")
+	}
+	return sMuted.Render("●")
+}
+
+func statusCell(status string) string {
+	return statusDot(status) + " " + status
+}
+
+// pad pads s to width using display width (ANSI-aware).
+func pad(s string, width int) string {
+	w := lipgloss.Width(s)
+	if w >= width {
+		return s
+	}
+	return s + spaces(width-w)
+}
+
+// trunc truncates s to fit within width (display-width aware, adds ellipsis).
+func trunc(s string, width int) string {
+	if lipgloss.Width(s) <= width {
+		return s
+	}
+	// approximate: trim runes until it fits
+	runes := []rune(s)
+	for len(runes) > 0 && lipgloss.Width(string(runes)+"…") > width {
+		runes = runes[:len(runes)-1]
+	}
+	return string(runes) + "…"
+}
+
+func cell(s string, width int) string {
+	return pad(trunc(s, width), width)
+}
+
+func spaces(n int) string {
+	if n <= 0 {
+		return ""
+	}
+	b := make([]byte, n)
+	for i := range b {
+		b[i] = ' '
+	}
+	return string(b)
+}
+
+func coalesce(s, fallback string) string {
+	if s == "" {
+		return fallback
+	}
+	return s
+}

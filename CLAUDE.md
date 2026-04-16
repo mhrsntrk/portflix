@@ -5,62 +5,73 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Run the CLI locally
-node src/index.js
-npm start
+# Build
+go build -o ports .
 
-# Test specific commands
-node src/index.js --all
-node src/index.js ps
-node src/index.js 3000
-node src/index.js kill 3000
-node src/index.js logs 3000
-node src/index.js watch
-node src/index.js clean
+# Run directly
+go run . [args]
+
+# Run a specific command
+go run . ps
+go run . kill 3000
+go run . logs 3000 -f
+go run . watch
+go run . 3000
+
+# Tidy dependencies
+go mod tidy
 ```
 
-There are no tests or lint scripts. Manual invocation is the primary way to verify changes.
+No test suite exists. Manual invocation is the primary way to verify changes.
 
 ## Architecture
 
-This is an ESM-only Node.js CLI (`"type": "module"`) with no build step. Entry point is `src/index.js`, which parses `process.argv` directly and dispatches to commands.
+Go 1.22, single module at `github.com/mhrsntrk/portflix`. No build step — `go build` produces a single binary.
 
-**Data flow for most commands:**
-1. `src/platform/index.js` — lazy-loads `darwin.js` via dynamic `import()`
-2. The platform module runs shell commands (`lsof`, `ps`, `docker ps`) and returns raw data
-3. `src/scanner.js` — consumes raw platform data, enriches it with framework detection, uptime, project root resolution, and Docker mapping, then exports typed async functions
-4. `src/display.js` — pure display layer using `chalk` + `cli-table3`; never calls scanner directly, receives data from `index.js`
+**Packages:**
 
-**Key scanner concepts:**
-- `getListeningPorts()` / `getAllProcesses()` batch all shell calls (single `ps -p pid1,pid2,...` and `lsof -a -d cwd -p ...`) to stay fast (~0.2s)
-- Framework detection has three layers: command string (`detectFrameworkFromCommand`), `package.json` deps (`detectFramework`), Docker image name (`detectFrameworkFromImage`)
-- `isDevProcess()` filters out system/desktop apps — both a blocklist (`systemApps`) and an allowlist (`devNames`)
-- Orphaned process = `ppid === 1` and is a dev process; zombie = `stat` contains `Z`
-- `resolveKillTarget(n)` tries port lookup first (if `n <= 65535`), falls back to PID
+```
+main.go                        — cobra CLI wiring + non-TUI commands (kill, clean, inspect)
+internal/scanner/
+  scanner.go                   — all macOS shell calls (lsof, ps, docker ps); Port/Process types
+  framework.go                 — IsDevProcess, DetectFramework*, framework color map
+internal/tui/
+  styles.go                    — lipgloss styles, fwColored(), statusDot(), pad/trunc helpers
+  ports.go                     — interactive port list (Bubble Tea); RunPorts() returns logsPort
+  ps.go                        — interactive process list (Bubble Tea)
+  watch.go                     — live port-change monitor (Bubble Tea)
+  logs.go                      — log tail viewer (bubbles/viewport + goroutine for -f)
+```
 
-**Platform module** (`src/platform/darwin.js`) exports:
-- `getListeningPortsRaw()` — returns `{ port, pid, processName }[]`
-- `batchProcessInfo(pids)` — returns `Map<pid, { ppid, stat, rss, lstart, command }>`
-- `batchCwd(pids)` — returns `Map<pid, string>`
-- `getAllProcessesRaw()` — returns full process list for `ports ps`
-- `getProcessTree(pid)` — walks parent chain upward
+**Data flow:**
 
-**CLI binary names:** `ports` and `portflix` (both map to `src/index.js`).
+`scanner.GetListeningPorts()` makes three batched shell calls:
+1. `lsof -iTCP -sTCP:LISTEN -P -n` → raw port/PID list
+2. `ps -p <pids> -o pid=,ppid=,stat=,rss=,etime=,command=` → process info for all PIDs at once
+3. `lsof -a -d cwd -p <pids>` → working directories for all PIDs at once
+
+Docker ports get an extra `docker ps` call if any docker process is detected.
+
+`etime` (elapsed time, format `[[DD-]HH:]MM:SS`) is used instead of lstart to avoid macOS date-string parsing complexity.
+
+**TUI models:**
+
+All interactive commands use `tea.WithAltScreen()`. The ports list model has states: `screenList` → `screenDetail` / `screenConfirm`. Pressing `l` sets `LogsPort` and quits; `main.go` then calls `RunLogs`. Auto-refresh fires every 5 seconds via `tea.Tick`.
+
+**Process status logic:**
+- `zombie` = `stat` field contains `Z`
+- `orphaned` = `ppid == 1` AND `IsDevProcess(name, cmd)` is true
+- otherwise `healthy`
 
 ## Homebrew
 
-The formula lives in the separate tap repo: https://github.com/mhrsntrk/homebrew-portflix
+Formula lives in `https://github.com/mhrsntrk/homebrew-portflix`.
 
-```
-homebrew-portflix/
-  Formula/
-    portflix.rb   ← install source: npm tarball
-```
-
-Install:
 ```bash
 brew tap mhrsntrk/portflix
 brew install portflix
 ```
 
-When releasing a new version: publish to npm, compute the new sha256 (`curl -sL <tarball-url> | shasum -a 256`), then update `url`, `sha256`, and version in `homebrew-portflix/Formula/portflix.rb`.
+Install produces two binaries: `ports` (primary) and `portflix` (alias).
+
+**Release workflow:** create a git tag (`git tag v1.x.x && git push --tags`), download the archive, compute `shasum -a 256`, update `url` + `sha256` in `homebrew-portflix/Formula/portflix.rb`.
