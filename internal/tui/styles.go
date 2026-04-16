@@ -1,6 +1,10 @@
 package tui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	"strings"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 const asciiLogo = `                  |    _| |_)
  __ \   _ \   __| __| |   | |\ \  /
@@ -129,4 +133,23 @@ func coalesce(s, fallback string) string {
 		return fallback
 	}
 	return s
+}
+
+// renderHints renders keyboard hints in priority order, stopping before they
+// would exceed the available width. Each hint is a [key, label] pair.
+func renderHints(width int, hints [][2]string) string {
+	avail := width - 2 // account for "  " indent
+	if avail <= 0 {
+		avail = 999
+	}
+	var parts []string
+	for _, h := range hints {
+		part := sMuted.Render(h[0]) + " " + h[1]
+		candidate := strings.Join(append(parts, part), "  ")
+		if lipgloss.Width(candidate) > avail && len(parts) > 0 {
+			break
+		}
+		parts = append(parts, part)
+	}
+	return strings.Join(parts, "  ")
 }

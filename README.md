@@ -21,19 +21,47 @@ brew install mhrsntrk/portflix/portflix
  .__/ \___/ _|   \__|_|  _|_| _/\_\
 _|
 
-  PORT     │  PROCESS     │  PID    │  PROJECT               │  FRAMEWORK   │  UPTIME    │  STATUS
-  ─────────────────────────────────────────────────────────────────────────────────────────────────
-▶ :3000    │  node        │  42872  │  frontend              │  Next.js     │  1d 9h     │  ● healthy
-  :3001    │  node        │  95380  │  preview-app           │  Next.js     │  2h 40m    │  ● healthy
-  :4566    │  docker      │  58351  │  backend-localstack-1  │  LocalStack  │  10d 3h    │  ● healthy
-  :5432    │  docker      │  58351  │  backend-postgres-1    │  PostgreSQL  │  10d 3h    │  ● healthy
-  :6379    │  docker      │  58351  │  backend-redis-1       │  Redis       │  10d 3h    │  ● healthy
+  PORT     │  PROCESS     │  PID    │  PROJECT                │  FRAMEWORK   │  UPTIME    │  STATUS
+  ──────────────────────────────────────────────────────────────────────────────────────────────────
+  :3000    │  docker      │  38154  │  openkyc-apps-web-1     │  Docker      │  12d 15h   │  ● healthy
+  :3001    │  docker      │  38154  │  openkyc-apps-partner-… │  Docker      │  12d 15h   │  ● healthy
+▶ :5432    │  docker      │  38154  │  openkyc-apps-db-1      │  PostgreSQL  │  12d 15h   │  ● healthy
 
-  5 ports  [dev mode]
+  3 ports  [dev mode]
   ↑↓/jk nav  enter detail  K kill  l logs  r refresh  a all  q quit
 ```
 
-Status dots: `●` green = healthy, yellow = orphaned (ppid 1), red = zombie.
+Status dots: `●` green = healthy, yellow = orphaned (ppid 1), red = zombie. The table adapts to terminal width, hiding lower-priority columns as needed.
+
+### Port detail (`enter`)
+
+```
+                  |    _| |_)
+ __ \   _ \   __| __| |   | |\ \  /
+ |   | (   | |    |   __| | | `  <
+ .__/ \___/ _|   \__|_|  _|_| _/\_\
+_|
+  port detail
+
+  :3000
+  ────────────────────────────────────────
+
+  Process         docker
+  PID             38154
+  Status          ● healthy
+  Framework       Docker
+  Memory          1.8 GB
+  Uptime          12d 15h
+  Started         Apr 4 00:18:16
+
+  Location
+  ────────────────────────────────────────
+
+  Directory       —
+  Project         openkyc-apps-web-1
+
+  K kill  esc back
+```
 
 ### Process list (`ports ps`)
 

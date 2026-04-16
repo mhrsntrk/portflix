@@ -303,14 +303,15 @@ func (m PortsModel) viewList() string {
 		summary += "  · refreshing"
 	}
 	b.WriteString("  " + sMuted.Render(summary) + "\n")
-	hints := sMuted.Render("↑↓/jk") + " nav  " +
-		sMuted.Render("enter") + " detail  " +
-		sMuted.Render("K") + " kill  " +
-		sMuted.Render("l") + " logs  " +
-		sMuted.Render("r") + " refresh  " +
-		sMuted.Render("a") + " all  " +
-		sMuted.Render("q") + " quit"
-	b.WriteString("  " + hints + "\n")
+	b.WriteString("  " + renderHints(m.width, [][2]string{
+		{"↑↓/jk", "nav"},
+		{"enter", "detail"},
+		{"K", "kill"},
+		{"l", "logs"},
+		{"r", "refresh"},
+		{"a", "all"},
+		{"q", "quit"},
+	}) + "\n")
 	return b.String()
 }
 

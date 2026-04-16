@@ -17,6 +17,7 @@ type psModel struct {
 	showAll bool
 	loading bool
 	err     error
+	width   int
 	sp      spinner.Model
 }
 
@@ -98,7 +99,7 @@ func (m psModel) Init() tea.Cmd {
 func (m psModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
-		// future: use for responsive layout
+		m.width = msg.Width
 
 	case spinner.TickMsg:
 		if m.loading {
@@ -246,10 +247,12 @@ func (m psModel) View() string {
 		summary += "  · refreshing"
 	}
 	b.WriteString("  " + sMuted.Render(summary) + "\n")
-	b.WriteString("  " + sMuted.Render("↑↓/jk") + " nav  " +
-		sMuted.Render("a") + " all  " +
-		sMuted.Render("r") + " refresh  " +
-		sMuted.Render("q") + " quit\n")
+	b.WriteString("  " + renderHints(m.width, [][2]string{
+		{"↑↓/jk", "nav"},
+		{"a", "all"},
+		{"r", "refresh"},
+		{"q", "quit"},
+	}) + "\n")
 	return b.String()
 }
 
