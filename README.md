@@ -9,10 +9,12 @@ Stop guessing which process is hogging port 3000. `portflix` gives you a color-c
 ```
 $ ports
 
- ┌─────────────────────────────────────┐
- │  🎬 Portflix                        │
- │  now streaming your ports...        │
- └─────────────────────────────────────┘
+                  |    _| |_)
+ __ \   _ \   __| __| |   | |\ \  /
+ |   | (   | |    |   __| | | `  <
+ .__/ \___/ _|   \__|_|  _|_| _/\_\
+_|
+  5 ports  dev only
 
 ┌───────┬─────────┬───────┬──────────────────────┬────────────┬────────┬───────────┐
 │ PORT  │ PROCESS │ PID   │ PROJECT              │ FRAMEWORK  │ UPTIME │ STATUS    │
@@ -36,14 +38,7 @@ Colors: green = healthy, yellow = orphaned, red = zombie.
 ## Install
 
 ```bash
-brew tap mhrsntrk/portflix
-brew install portflix
-```
-
-Or via npm:
-
-```bash
-npm install -g portflix
+brew install mhrsntrk/portflix/portflix
 ```
 
 ## Usage
@@ -72,7 +67,7 @@ ports 3000
 portflix 3000
 ```
 
-Detailed view: full process tree, repository path, current git branch, memory usage, and an interactive prompt to kill the process.
+Detailed view: process info, repository path, current git branch, memory usage, and an interactive prompt to kill the process.
 
 ### Kill a process
 
@@ -104,17 +99,14 @@ $ ports kill 3000-3005
 ```bash
 ports logs 3000               # show last 50 lines and exit
 ports logs 3000 -f            # follow (stream new lines)
-ports logs 3000 --lines 10    # show last 10 lines
-ports logs 3000 --lines 10 -f # show last 10 then follow
-ports logs 3000 --err         # stderr only
 ```
 
 Discovers log files automatically using `lsof` file descriptor detection. If stdout/stderr is redirected to a file, it finds and tails it. Falls back to system log (`log show` on macOS) when no log files are found.
 
 ```
-$ ports logs 3000 --lines 5
+$ ports logs 3000
 
-  Portflix — logs for :3000 (node, PID 42872)
+  logs for :3000 (node, PID 42872)
 
   ▸ Tailing stdout: /tmp/next-dev.output
 
@@ -131,7 +123,7 @@ $ ports logs 3000 --lines 5
 ports ps
 ```
 
-A beautiful `ps aux` for developers. Shows all running dev processes (not just port-bound ones) with CPU%, memory, framework detection, and a smart description column. Docker processes are collapsed into a single summary row.
+A developer-focused `ps`. Shows all running dev processes (not just port-bound ones) with CPU%, memory, framework detection, and a smart description column. Docker processes are collapsed into a single summary row.
 
 ```
 $ ports ps
@@ -144,13 +136,9 @@ $ ports ps
 │ 36664 │ python3 │ 0.2  │ 17.6 MB  │ —        │ Python    │ 6d 10h  │ browser_use.skill_cli.daemon   │
 ├───────┼─────────┼──────┼──────────┼──────────┼───────────┼─────────┼────────────────────────────────┤
 │ 26408 │ node    │ 0.1  │ 9.2 MB   │ —        │ Node.js   │ 10d 13h │ jest jest_runner_cloud.js      │
-├───────┼─────────┼──────┼──────────┼──────────┼───────────┼─────────┼────────────────────────────────┤
-│ 25752 │ node    │ 0.0  │ 17.3 MB  │ —        │ Node.js   │ 10d 13h │ server.js                      │
-├───────┼─────────┼──────┼──────────┼──────────┼───────────┼─────────┼────────────────────────────────┤
-│ 66921 │ Python  │ 0.0  │ 4.1 MB   │ —        │ Python    │ 2h 25m  │ src.server                     │
 └───────┴─────────┴──────┴──────────┴──────────┴───────────┴─────────┴────────────────────────────────┘
 
-  5 processes  ·  --all to show everything
+  3 processes  ·  --all to show everything
 ```
 
 ```bash
@@ -187,7 +175,7 @@ Framework detection reads `package.json` dependencies and inspects process comma
 
 ## Platform support
 
-macOS only. Requires Node.js ≥ 18.
+macOS only. No runtime required -- single native binary.
 
 ## License
 

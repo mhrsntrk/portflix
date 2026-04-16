@@ -189,8 +189,8 @@ func (m logsModel) View() string {
 		followStr = sGreen.Render("  ● following")
 	}
 
-	header := "\n  " + sCyan.Render("🎬 Portflix") +
-		sMuted.Render(fmt.Sprintf("  logs for %s (%s, PID %d)", portLabel, m.procName, m.pid)) +
+	header := renderBanner() + "\n" +
+		"  " + sMuted.Render(fmt.Sprintf("logs for %s (%s, PID %d)", portLabel, m.procName, m.pid)) +
 		followStr + "\n"
 
 	fileInfo := ""

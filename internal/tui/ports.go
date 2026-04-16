@@ -232,8 +232,8 @@ func (m PortsModel) viewList() string {
 	if !m.showAll {
 		filterTag = sMuted.Render("  dev only")
 	}
-	b.WriteString("\n  " + sCyan.Render("🎬 Portflix") +
-		sMuted.Render(fmt.Sprintf("  %d port%s", len(m.ports), plural(len(m.ports)))) +
+	b.WriteString(renderBanner() + "\n")
+	b.WriteString("  " + sMuted.Render(fmt.Sprintf("%d port%s", len(m.ports), plural(len(m.ports)))) +
 		filterTag + refreshing + "\n\n")
 
 	// Status message
@@ -325,7 +325,8 @@ func (m PortsModel) viewDetail() string {
 	p := m.ports[m.cursor]
 	var b strings.Builder
 
-	b.WriteString("\n  " + sCyan.Render("🎬 Portflix") + sMuted.Render("  port detail") + "\n\n")
+	b.WriteString(renderBanner() + "\n")
+	b.WriteString("  " + sMuted.Render("port detail") + "\n\n")
 
 	row := func(label, value string) {
 		b.WriteString("  " + sMuted.Render(pad(label, 16)) + value + "\n")

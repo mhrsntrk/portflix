@@ -2,6 +2,16 @@ package tui
 
 import "github.com/charmbracelet/lipgloss"
 
+const asciiLogo = `                  |    _| |_)
+ __ \   _ \   __| __| |   | |\ \  /
+ |   | (   | |    |   __| | | ` + "`" + `  <
+ .__/ \___/ _|   \__|_|  _|_| _/\_\
+_|                                  `
+
+func renderBanner() string {
+	return sCyan.Render(asciiLogo)
+}
+
 var (
 	cCyan    = lipgloss.Color("#00D7FF")
 	cGreen   = lipgloss.Color("#00FF7F")

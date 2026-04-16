@@ -170,8 +170,8 @@ func (m psModel) View() string {
 	if !m.showAll {
 		filterTag = sMuted.Render("  dev only")
 	}
-	b.WriteString("\n  " + sCyan.Render("🎬 Portflix") +
-		sMuted.Render(fmt.Sprintf("  %d process%s", len(m.procs), psPlural(len(m.procs)))) +
+	b.WriteString(renderBanner() + "\n")
+	b.WriteString("  " + sMuted.Render(fmt.Sprintf("%d process%s", len(m.procs), psPlural(len(m.procs)))) +
 		filterTag + refreshing + "\n\n")
 
 	const (

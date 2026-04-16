@@ -95,8 +95,8 @@ func (m watchModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m watchModel) View() string {
 	var b strings.Builder
-	b.WriteString("\n  " + sCyan.Render("🎬 Portflix") +
-		sMuted.Render("  watching for port changes...") + "\n\n")
+	b.WriteString(renderBanner() + "\n")
+	b.WriteString("  " + sMuted.Render("watching for port changes...") + "\n\n")
 
 	if len(m.events) == 0 {
 		b.WriteString("  " + sMuted.Render("Waiting for changes...") + "\n")
@@ -150,7 +150,8 @@ func RunWatchInline() {
 	}
 
 	fmt.Println()
-	fmt.Println("  " + sCyan.Render("🎬 Portflix") + sMuted.Render("  watching for port changes..."))
+	fmt.Println(renderBanner())
+	fmt.Println("  " + sMuted.Render("watching for port changes..."))
 	fmt.Println("  " + sMuted.Render("Press Ctrl+C to stop"))
 	fmt.Println()
 
